@@ -34,23 +34,39 @@ class Robot(TimedRobot):
         self.drivetrain.m_right_encoder.setPosition(0)
         self.drivetrain.m_left_encoder.setPosition(0)
         self.turn_controller.enableContinuousInput(0, 360)
+        self.stage = 1
+        self.drive_controller.setSetpoint(1 * 12 / (self.wheel_diameter * math.pi) * 360)
+
 
     def autonomousPeriodic(self):
-        self.drive_controller.setSetpoint(1 * 12 / (math.pi * self.wheel_diameter) * 360)
-        # if not self.drive_controller.atSetpoint():
-        motion = self.drive_controller.calculate(measurement= self.drivetrain.m_right_encoder.getPosition())
-        self.drivetrain.set(motion, motion)
-        pass
-        # self.turn_controller.setSetpoint(90)
-        # if not self.turn_controller.atSetpoint():
-        #     motion = self.turn_controller.calculate(measurement= self.drivetrain.gyro.getYaw())
-        #     self.drivetrain.set(motion, - motion)
-        #     pass
-        # self.drive_controller.setSetpoint(1 * 6 / self.wheel_radius / math.pi * 360)
-        # if not self.drive_controller.atSetpoint():
-        #     motion = self.turn_controller.calculate(measurement=self.drivetrain.m_right_encoder.getPosition())
-        #     self.drivetrain.set(motion, motion)
-        #     pass
+        if self.stage == 1:
+            if self.drive_controller.atSetpoint():
+                self.stage = 2
+                self.turn_controller.setSetpoint(90)
+            else:
+                motion = self.drive_controller.calculate(measurement= self.drivetrain.m_right_encoder.getPosition())
+                self.drivetrain.set(motion, motion)
+
+        elif self.stage == 2:
+            if self.turn_controller.atSetpoint():
+                self.stage = 3
+                self.drivetrain.m_right_encoder.setPosition(0)
+                self.drivetrain.m_left_encoder.setPosition(0)
+                self.drive_controller.setSetpoint(1 * 12 / (self.wheel_diameter * math.pi) * 360)
+            else:
+                motion = self.turn_controller.calculate(measurement= self.drivetrain.gyro.getYaw())
+                self.drivetrain.set(motion, - motion)
+
+
+        elif self.stage == 3:
+            if self.drive_controller.atSetpoint():
+                self.stage = 4
+            else:
+                motion = self.turn_controller.calculate(measurement=self.drivetrain.m_right_encoder.getPosition())
+                self.drivetrain.set(motion, motion)
+
+        else:
+            self.drivetrain.set(0, 0)
 
 
 if __name__ == "__main__":
